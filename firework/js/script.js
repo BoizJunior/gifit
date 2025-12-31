@@ -2410,14 +2410,18 @@ function setLoadingStatus(status) {
 if (IS_HEADER) {
   init()
 } else {
-  // Allow status to render, then preload assets and start app.
   setLoadingStatus('Lighting Fuses')
-  setTimeout(() => {
-    soundManager.preload().then(init, (reason) => {
-      // Codepen preview doesn't like to load the audio, so just init to fix the preview for now.
+
+  // Đợi cả âm thanh preload và Font chữ tải xong
+  Promise.all([
+    soundManager.preload(),
+    document.fonts.ready, // <--- Dòng quan trọng nhất: Đợi font chữ sẵn sàng
+  ])
+    .then(() => {
       init()
-      // setLoadingStatus('Error Loading Audio');
-      return Promise.reject(reason)
     })
-  }, 0)
+    .catch((reason) => {
+      console.error('Lỗi tải tài nguyên:', reason)
+      init() // Vẫn khởi tạo để tránh bị đứng màn hình loading
+    })
 }
