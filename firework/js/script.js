@@ -946,7 +946,10 @@ function getTextPixels(text, fontSize) {
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
   const points = []
-  const gap = IS_MOBILE ? 2 : 3 // Khoảng cách giữa các hạt (nhỏ hơn thì nét hơn)
+
+  // Tự điều chỉnh khoảng cách hạt:
+  // Nếu font nhỏ (mobile) thì hạt dày (gap=2), font lớn (desktop) thì hạt thưa hơn chút (gap=3)
+  const gap = fontSize < 40 ? 2 : 3
 
   for (let y = 0; y < canvas.height; y += gap) {
     for (let x = 0; x < canvas.width; x += gap) {
@@ -967,31 +970,46 @@ function seqText() {
   const text = phrases[phraseIndex]
   phraseIndex = (phraseIndex + 1) % phrases.length
 
-  const fontSize = IS_MOBILE ? 35 : 60
+  // 1. TÍNH TOÁN FONT SIZE ĐỘNG:
+  // Trên mobile (stageW nhỏ), font sẽ chiếm khoảng 12% chiều rộng màn hình.
+  // Trên desktop (stageW lớn), font sẽ chiếm khoảng 7% chiều rộng màn hình.
+  let responsiveSize = stageW * (IS_MOBILE ? 0.12 : 0.07)
+
+  // 2. TỰ ĐỘNG THU NHỎ NẾU CÂU QUÁ DÀI:
+  // Nếu câu dài hơn 10 ký tự (ví dụ: "NHIỀU MAY MẮN"), thu nhỏ font thêm 20%
+  if (text.length > 10) responsiveSize *= 0.8
+  // Giới hạn font không quá 80px để tránh bị thô trên màn hình cực lớn
+  const fontSize = Math.min(responsiveSize, 80)
+
   const points = getTextPixels(text, fontSize)
-  const color = randomColor({ limitWhite: true })
+
+  // 3. CHỈNH MÀU SẮC (Hồng cho câu đặc biệt, còn lại ngẫu nhiên)
+  let color
+  if (text.includes('XINH') || text.includes('❤️') || text.includes('VUI')) {
+    color = '#ff69b4' // Màu hồng lãng mạn
+  } else {
+    color = randomColor({ limitWhite: true })
+  }
 
   const centerX = stageW / 2
   const centerY = stageH * 0.4
 
   points.forEach((p) => {
+    // Sử dụng tỉ lệ 1.2 để các hạt không quá dính nhau
     const star = Star.add(
-      centerX + p.x * (IS_MOBILE ? 1.1 : 1.3),
-      centerY + p.y * (IS_MOBILE ? 1.1 : 1.3),
+      centerX + p.x * 1.2,
+      centerY + p.y * 1.2,
       color,
-      0, // Angle = 0
-      0, // Speed = 0 (Đứng yên tại chỗ)
+      0,
+      0,
       2500 + Math.random() * 1000,
       0,
       0
     )
 
-    // ĐÂY LÀ PHẦN QUAN TRỌNG ĐỂ HẾT NHÒE:
-    star.noGravity = true // Chữ sẽ không bị rơi xuống
+    star.noGravity = true
     star.speedX = 0
     star.speedY = 0
-
-    // Giảm bớt lấp lánh để chữ nhìn rõ hơn
     star.sparkFreq = 0
   })
 
