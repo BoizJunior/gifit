@@ -1257,13 +1257,24 @@ function startSequence() {
 
 let activePointerCount = 0
 let isUpdatingSpeed = false
+let isMusicUnlocked = false
 
-function handlePointerStart(event) {
-  // --- BỔ SUNG: Kích hoạt nhạc khi chạm lần đầu ---
-  const bgMusic = document.getElementById('bg-music')
-  if (store.state.soundEnabled && bgMusic && bgMusic.paused) {
-    bgMusic.play()
-  }
+
+  function handlePointerStart(event) {
+    // --- BỔ SUNG: Mở khóa nhạc nền cực mạnh cho điện thoại ---
+    const bgMusic = document.getElementById('bg-music');
+    if (bgMusic && !isMusicUnlocked) {
+        bgMusic.play().then(() => {
+            isMusicUnlocked = true;
+            // Nếu người dùng đang tắt loa trong menu thì tạm dừng nhạc lại ngay
+            if (!store.state.soundEnabled) bgMusic.pause();
+        }).catch(e => console.log("Cần chạm mạnh hơn để mở nhạc"));
+    }
+    
+    // Nếu nhạc đang chạy mà bị đứng (do mạng/browser), bấm vào màn hình sẽ bắt nó chạy lại
+    if (store.state.soundEnabled && bgMusic && bgMusic.paused) {
+        bgMusic.play();
+    }
   activePointerCount++
   const btnSize = 50
 
@@ -2443,3 +2454,17 @@ if (IS_HEADER) {
       init() // Vẫn khởi tạo để tránh bị đứng màn hình loading
     })
 }
+
+// Xử lý khi người dùng quay lại trang web từ ứng dụng khác
+document.addEventListener("visibilitychange", () => {
+    const bgMusic = document.getElementById('bg-music');
+    if (document.visibilityState === 'visible') {
+        // Nếu đang bật Sound trong web thì cho nhạc chạy lại
+        if (store.state.soundEnabled && bgMusic) {
+            bgMusic.play();
+        }
+    } else {
+        // Nếu ẩn tab thì tạm dừng để tiết kiệm pin và tránh lỗi
+        if (bgMusic) bgMusic.pause();
+    }
+});
